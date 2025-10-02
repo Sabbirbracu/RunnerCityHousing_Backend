@@ -1,0 +1,154 @@
+// schema.prisma
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Users {
+  user_id       Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  phone         String?
+  role          String    // owner, admin, staff, committee
+  holding_no    String?   // formerly building_no
+  plot_no       String?   // new
+  status        String    @default("pending") // pending, approved, rejected
+  blood_group   String?
+  password_hash String
+
+  // Relations
+  fees                 Fees[]
+  payrollAssignments   PayrollAssignments[]
+  contributionPayments ContributionPayments[]
+  expensesApproved     Expenses[] @relation("ApprovedExpenses")
+  assignedPlot         Plot?
+}
+
+
+model Plot {
+  plot_no     String   @id
+  owner_name  String
+  is_assigned Boolean  @default(false)
+  assigned_to Int?     @unique // Users.user_id
+  
+  // Relations
+  assignedUser Users? @relation(fields: [assigned_to], references: [user_id])
+}
+
+
+model Fees {
+  fee_id     Int          @id @default(autoincrement())
+  user_id    Int
+  month      DateTime
+  amount_due Decimal
+  status     String       // pending, paid, partial, overdue
+
+  // Relations
+  user        Users        @relation(fields: [user_id], references: [user_id])
+  feePayments FeePayments[]
+}
+
+model FeePayments {
+  payment_id     Int      @id @default(autoincrement())
+  fee_id         Int
+  amount_paid    Decimal
+  payment_date   DateTime
+  payment_method String
+  transaction_id String?
+
+  // Relations
+  fee Fees @relation(fields: [fee_id], references: [fee_id])
+}
+
+model PayrollAssignments {
+  assignment_id Int                  @id @default(autoincrement())
+  staff_id      Int
+  role          String
+  base_amount   Decimal
+  frequency     String               // monthly, yearly, one-time, etc.
+  start_date    DateTime
+  end_date      DateTime?
+  is_active     Boolean              @default(true)
+
+  // Relations
+  staff             Users               @relation(fields: [staff_id], references: [user_id])
+  payrollAdjustments PayrollAdjustments[]
+  payrollPayments    PayrollPayments[]
+}
+
+model PayrollAdjustments {
+  adjustment_id Int      @id @default(autoincrement())
+  assignment_id Int
+  type          String   // bonus, deduction
+  amount        Decimal
+  month         DateTime
+  reason        String?
+
+  // Relations
+  assignment PayrollAssignments @relation(fields: [assignment_id], references: [assignment_id])
+}
+
+model PayrollPayments {
+  payment_id     Int      @id @default(autoincrement())
+  assignment_id  Int
+  month          DateTime
+  total_paid     Decimal
+  payment_date   DateTime
+  method         String
+  transaction_id String?
+  status         String
+
+  // Relations
+  assignment PayrollAssignments @relation(fields: [assignment_id], references: [assignment_id])
+}
+
+model Contributions {
+  contribution_id Int                   @id @default(autoincrement())
+  title           String
+  description     String?
+  target_amount   Decimal
+  collected_amount Decimal?             @default(0.0)
+  start_date      DateTime
+  end_date        DateTime?
+  status          String                // ongoing, completed
+
+  // Relations
+  contributionPayments ContributionPayments[]
+  expenses              Expenses[]
+}
+
+model ContributionPayments {
+  payment_id     Int      @id @default(autoincrement())
+  contribution_id Int
+  user_id        Int
+  amount         Decimal
+  payment_date   DateTime
+  payment_method String
+  transaction_id String?
+
+  // Relations
+  contribution Contributions @relation(fields: [contribution_id], references: [contribution_id])
+  user         Users         @relation(fields: [user_id], references: [user_id])
+}
+
+model Expenses {
+  expense_id      Int      @id @default(autoincrement())
+  category        String
+  description     String?
+  total_amount    Decimal
+  paid_by         String    // cash, bkash, sslcommerz, etc.
+  payment_date    DateTime
+  approved_by     Int
+  linked_contribution_id Int?
+  receipt_path    String?
+  notes           String?
+
+  // Relations
+  approvedBy   Users         @relation("ApprovedExpenses", fields: [approved_by], references: [user_id])
+  contribution Contributions? @relation(fields: [linked_contribution_id], references: [contribution_id])
+}

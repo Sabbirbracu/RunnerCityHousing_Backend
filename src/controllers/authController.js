@@ -1,6 +1,6 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const prisma = new PrismaClient();
 
@@ -11,7 +11,7 @@ const sanitizeUser = (user) => {
 };
 
 // 📌 SIGNUP
-export const signup = async (req, res) => {
+const signup = async (req, res) => {
   const { name, email, phone, plot_no, password } = req.body;
 
   try {
@@ -54,7 +54,7 @@ export const signup = async (req, res) => {
         plot_no,
         password_hash: hashedPassword,
         role: "owner",
-        status: "PENDING",
+        status: "pending",
       },
     });
 
@@ -78,7 +78,7 @@ export const signup = async (req, res) => {
 };
 
 // 📌 LOGIN
-export const login = async (req, res) => {
+const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -113,4 +113,9 @@ export const login = async (req, res) => {
     console.error("Login error:", err);
     res.status(500).json({ message: "Error logging in." });
   }
+};
+
+module.exports = {
+  signup,
+  login
 };

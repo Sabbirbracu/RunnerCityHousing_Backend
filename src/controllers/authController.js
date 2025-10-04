@@ -15,7 +15,6 @@ const signup = async (req, res) => {
   const { name, email, phone, plot_no, password } = req.body;
 
   try {
-    console.log("Signup request body:", req.body);
     // Check if email already exists
     const existingEmail = await prisma.users.findUnique({ where: { email } });
     if (existingEmail) {
@@ -117,5 +116,5 @@ const login = async (req, res) => {
 
 module.exports = {
   signup,
-  login
+  login,
 };

@@ -1,4 +1,4 @@
-name: Deploy Backend to Render
+name: Backend CI/CD
 
 on:
   push:
@@ -7,44 +7,45 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy to Render
+  deploy-backend:
+    name: Build & Deploy Backend
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
-
-      - name: Run Tests (Optional)
-        run: |
-          echo "No tests yet — skipping."
-          # npm test
-
-      - name: Build Project (if needed)
-        run: |
-          echo "Building (if applicable)"
-          npm run build || echo "No build script found"
-
-      - name: Deploy to Render
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: |
-          curl -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
-            -H "Accept: application/json" \
-            -H "Authorization: Bearer $RENDER_API_KEY" \
-            -d ''
 
       - name: Prisma Migrate Deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           npx prisma migrate deploy
+          npx prisma db seed || echo "No seed configured"
+
+      - name: Deploy to Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ secrets.SERVICE_ID }}
+        run: |
+          echo "Triggering Render deploy..."
+          curl -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -d ''
+
+      - name: Wait for backend to be live
+        run: |
+          echo "Waiting for backend..."
+          until curl -s https://runner-city-backend.onrender.com/ping; do
+            echo "Backend not ready, retrying in 5s..."
+            sleep 5
+          done
+          echo "Backend is live!"

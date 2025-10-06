@@ -8,7 +8,7 @@ const createUser = async (data) => {
       name: data.name,
       email: data.email,
       phone: data.phone,
-      role: data.role,  // e.g. "owner", "admin", "staff", "committee"
+      role: data.role, // e.g. "owner", "admin", "staff", "committee"
       holding_no: data.holding_no,
       plot_no: data.plot_no,
       status: data.status,
@@ -31,7 +31,6 @@ const getAllUsers = async () => {
       plot_no: true,
       status: true,
       blood_group: true,
-      createdAt: true, // if you later add timestamps
     },
   });
 };
@@ -63,5 +62,5 @@ module.exports = {
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
 };

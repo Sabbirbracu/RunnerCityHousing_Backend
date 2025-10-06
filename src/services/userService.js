@@ -50,10 +50,11 @@ const updateUser = async (id, data) => {
   });
 };
 
-// Delete user
 const deleteUser = async (id) => {
+  const userId = Number(id);
+  if (isNaN(userId)) throw new Error("Invalid user ID");
   return await prisma.users.delete({
-    where: { user_id: Number(id) },
+    where: { user_id: userId },
   });
 };
 

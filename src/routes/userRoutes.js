@@ -16,5 +16,6 @@ router.delete("/:id", auth, userController.deleteUser);
 // Admin-only routes
 router.patch("/:id/approve", auth, adminOnly, userController.approveUser);
 router.patch("/:id/reject", auth, adminOnly, userController.rejectUser);
+router.delete("/:id", auth, adminOnly, userController.deleteUser);
 
 module.exports = router;

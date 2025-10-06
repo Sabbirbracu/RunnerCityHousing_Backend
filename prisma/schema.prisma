@@ -1,5 +1,3 @@
-// schema.prisma
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -29,27 +27,25 @@ model Users {
   assignedPlot         Plot?
 }
 
-
 model Plot {
   plot_no     String   @id
   owner_name  String
   is_assigned Boolean  @default(false)
-  assigned_to Int?     @unique // Users.user_id
-  
+  assigned_to Int?     @unique
+
   // Relations
-  assignedUser Users? @relation(fields: [assigned_to], references: [user_id])
+  assignedUser Users? @relation(fields: [assigned_to], references: [user_id], onDelete: SetNull)
 }
 
-
 model Fees {
-  fee_id     Int          @id @default(autoincrement())
+  fee_id     Int       @id @default(autoincrement())
   user_id    Int
   month      DateTime
   amount_due Decimal
-  status     String       // pending, paid, partial, overdue
+  status     String    // pending, paid, partial, overdue
 
   // Relations
-  user        Users        @relation(fields: [user_id], references: [user_id])
+  user        Users        @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
   feePayments FeePayments[]
 }
 
@@ -62,7 +58,7 @@ model FeePayments {
   transaction_id String?
 
   // Relations
-  fee Fees @relation(fields: [fee_id], references: [fee_id])
+  fee Fees @relation(fields: [fee_id], references: [fee_id], onDelete: Cascade)
 }
 
 model PayrollAssignments {
@@ -76,7 +72,7 @@ model PayrollAssignments {
   is_active     Boolean              @default(true)
 
   // Relations
-  staff             Users               @relation(fields: [staff_id], references: [user_id])
+  staff             Users               @relation(fields: [staff_id], references: [user_id], onDelete: Cascade)
   payrollAdjustments PayrollAdjustments[]
   payrollPayments    PayrollPayments[]
 }
@@ -90,7 +86,7 @@ model PayrollAdjustments {
   reason        String?
 
   // Relations
-  assignment PayrollAssignments @relation(fields: [assignment_id], references: [assignment_id])
+  assignment PayrollAssignments @relation(fields: [assignment_id], references: [assignment_id], onDelete: Cascade)
 }
 
 model PayrollPayments {
@@ -104,7 +100,7 @@ model PayrollPayments {
   status         String
 
   // Relations
-  assignment PayrollAssignments @relation(fields: [assignment_id], references: [assignment_id])
+  assignment PayrollAssignments @relation(fields: [assignment_id], references: [assignment_id], onDelete: Cascade)
 }
 
 model Contributions {
@@ -123,17 +119,17 @@ model Contributions {
 }
 
 model ContributionPayments {
-  payment_id     Int      @id @default(autoincrement())
+  payment_id      Int      @id @default(autoincrement())
   contribution_id Int
-  user_id        Int
-  amount         Decimal
-  payment_date   DateTime
-  payment_method String
-  transaction_id String?
+  user_id         Int
+  amount          Decimal
+  payment_date    DateTime
+  payment_method  String
+  transaction_id  String?
 
   // Relations
-  contribution Contributions @relation(fields: [contribution_id], references: [contribution_id])
-  user         Users         @relation(fields: [user_id], references: [user_id])
+  contribution Contributions @relation(fields: [contribution_id], references: [contribution_id], onDelete: Cascade)
+  user         Users         @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 }
 
 model Expenses {
@@ -149,6 +145,6 @@ model Expenses {
   notes           String?
 
   // Relations
-  approvedBy   Users         @relation("ApprovedExpenses", fields: [approved_by], references: [user_id])
-  contribution Contributions? @relation(fields: [linked_contribution_id], references: [contribution_id])
+  approvedBy   Users         @relation("ApprovedExpenses", fields: [approved_by], references: [user_id], onDelete: Cascade)
+  contribution Contributions? @relation(fields: [linked_contribution_id], references: [contribution_id], onDelete: Cascade)
 }

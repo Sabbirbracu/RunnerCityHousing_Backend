@@ -17,7 +17,7 @@ const createUser = async (req, res) => {
 const getUsers = async (req, res) => {
   try {
     const users = await userService.getAllUsers();
-    console.log("Fetched users:", users);
+
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });

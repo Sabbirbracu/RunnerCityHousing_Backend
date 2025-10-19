@@ -6,6 +6,7 @@ const createPlot = async (data) => {
     data: {
       plot_no: data.plot_no,
       owner_name: data.owner_name,
+      size: data.size ? parseFloat(data.size) : 0.0,
       is_assigned: data.is_assigned || false,
       assigned_to: data.assigned_to || null,
     },
@@ -19,6 +20,7 @@ const getAllPlots = async () => {
 };
 
 const updatePlot = async (plot_no, data) => {
+  if (data.size) data.size = parseFloat(data.size);
   return await prisma.plot.update({
     where: { plot_no },
     data,

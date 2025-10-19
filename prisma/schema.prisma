@@ -30,6 +30,7 @@ model Users {
 model Plot {
   plot_no     String   @id
   owner_name  String
+  size Float @default(0.0)
   is_assigned Boolean  @default(false)
   assigned_to Int?     @unique
 

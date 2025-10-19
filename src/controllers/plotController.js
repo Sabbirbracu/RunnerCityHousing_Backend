@@ -3,7 +3,7 @@ const plotService = require("../services/plotService");
 const getPlots = async (req, res) => {
   try {
     const plots = await plotService.getAllPlots();
-    console.log(plots);
+    console.log("plots", plots);
     res.json(plots);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -12,40 +12,62 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 🧾 Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🧩 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: npm ci
 
-      - name: Prisma Migrate Deploy
+      - name: 🧠 Verify Railway DB Connection
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          npx prisma migrate deploy
-          npx prisma db seed || echo "No seed configured"
+          echo "🔍 Testing Railway DB Connection..."
+          npx prisma db pull || { echo "❌ Failed to connect to Railway DB"; exit 1; }
+          echo "✅ Successfully connected to Railway DB"
 
-      - name: Deploy to Render
+      - name: 🗃️ Prisma Migrate Deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🚀 Running Prisma migrations..."
+          npx prisma migrate deploy || { echo "❌ Migration failed"; exit 1; }
+          npx prisma db seed || echo "ℹ️ No seed configured"
+          echo "✅ Migrations completed successfully"
+
+      - name: 🌐 Trigger Render Deployment
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           SERVICE_ID: ${{ secrets.SERVICE_ID }}
         run: |
-          echo "Triggering Render deploy..."
-          curl -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
+          echo "🚀 Triggering Render deploy..."
+          response=$(curl -s -o response.json -w "%{http_code}" -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
             -H "Accept: application/json" \
             -H "Authorization: Bearer $RENDER_API_KEY" \
-            -d ''
+            -d '')
+          if [ "$response" -ge 400 ]; then
+            echo "❌ Render deploy trigger failed with HTTP $response"
+            cat response.json
+            exit 1
+          fi
+          echo "✅ Render deploy triggered successfully"
 
-      - name: Wait for backend to be live
+      - name: ⏳ Wait for Backend to be Live
         run: |
-          echo "Waiting for backend..."
-          until curl -s https://runner-city-backend.onrender.com/ping; do
-            echo "Backend not ready, retrying in 5s..."
-            sleep 5
+          echo "⏳ Waiting for backend to go live..."
+          ATTEMPTS=0
+          until curl -s --head --fail https://runnercityhousing-backend.onrender.com > /dev/null; do
+            ATTEMPTS=$((ATTEMPTS+1))
+            if [ $ATTEMPTS -ge 20 ]; then
+              echo "❌ Backend not responding after 20 attempts"
+              exit 1
+            fi
+            echo "Backend not ready yet... retrying in 10s"
+            sleep 10
           done
-          echo "Backend is live!"
+          echo "✅ Backend is live and responding!"

@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual trigger (for manual seed or redeploy)
 
 jobs:
   deploy-backend:
@@ -31,16 +31,30 @@ jobs:
           npx prisma db pull || { echo "❌ Failed to connect to Railway DB"; exit 1; }
           echo "✅ Successfully connected to Railway DB"
 
-      - name: 🗃️ Prisma Migrate Deploy
+      - name: 🗃️ Run Prisma Migrations (Safe Deploy)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NODE_ENV: production
         run: |
           echo "🚀 Running Prisma migrations..."
           npx prisma migrate deploy || { echo "❌ Migration failed"; exit 1; }
-          npx prisma db seed || echo "ℹ️ No seed configured"
-          echo "✅ Migrations completed successfully"
+
+          # Optional seed logic
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "⚙️ Manual workflow detected – running seed for controlled refresh..."
+            if [ -f "prisma/seed.js" ]; then
+              node prisma/seed.js || echo "ℹ️ Seed script failed or skipped"
+            else
+              echo "ℹ️ No seed.js found, skipping seed step."
+            fi
+          else
+            echo "🛡️ Auto deploy detected – skipping seed step"
+          fi
+
+          echo "✅ Migration (and optional seed) completed successfully"
 
       - name: 🌐 Trigger Render Deployment
+        if: success()
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           SERVICE_ID: ${{ secrets.SERVICE_ID }}

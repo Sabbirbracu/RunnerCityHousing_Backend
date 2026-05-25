@@ -1,60 +1,34 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-// Create a new user
 const createUser = async (data) => {
-  return await prisma.users.create({
-    data: {
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      role: data.role, // e.g. "owner", "admin", "staff", "committee"
-      holding_no: data.holding_no,
-      plot_no: data.plot_no,
-      status: data.status,
-      blood_group: data.blood_group,
-      password_hash: data.password_hash, // hash before saving!
-    },
-  });
+  return prisma.users.create({ data });
 };
 
-// Fetch all users
 const getAllUsers = async () => {
-  return await prisma.users.findMany({
-    select: {
-      user_id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      holding_no: true,
-      plot_no: true,
-      status: true,
-      blood_group: true,
-    },
+  return prisma.users.findMany({
+    orderBy: { created_at: "desc" },
   });
 };
 
-// Fetch single user by ID
 const getUserById = async (id) => {
-  return await prisma.users.findUnique({
+  return prisma.users.findUnique({
     where: { user_id: Number(id) },
   });
 };
 
-// Update user
 const updateUser = async (id, data) => {
-  return await prisma.users.update({
+  // Don't allow updating sensitive fields through this generic endpoint
+  const { password_hash, status, role, ...safeData } = data;
+  return prisma.users.update({
     where: { user_id: Number(id) },
-    data,
+    data: safeData,
   });
 };
 
 const deleteUser = async (id) => {
-  const userId = Number(id);
-  if (isNaN(userId)) throw new Error("Invalid user ID");
-  return await prisma.users.delete({
-    where: { user_id: userId },
+  return prisma.users.delete({
+    where: { user_id: Number(id) },
   });
 };
 

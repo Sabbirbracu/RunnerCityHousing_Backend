@@ -8,36 +8,106 @@ datasource db {
 }
 
 model Users {
-  user_id            Int     @id @default(autoincrement())
+  user_id            Int       @id @default(autoincrement())
   name               String
-  email              String  @unique
+  email              String    @unique
   phone              String?
-  role               String
+  role               String    @default("pending_review")
   blood_group        String?
   password_hash      String
   holding_no         String?
-  plot_no            String?   @unique
+  plot_no            String?
   status             String    @default("pending")
+  relationship_type  String?
+  flat_count         Int?
+  rejection_reason   String?   @db.VarChar(500)
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
   contributionPayments ContributionPayments[]
   expensesApproved     Expenses[] @relation("ApprovedExpenses")
   fees                 Fees[]
   payrollAssignments   PayrollAssignments[]
 
-  // One-to-one relation to Plot
-  assignedPlot       Plot?     @relation(fields: [plot_no], references: [plot_no])
+  // Ownership records for this user
+  ownerships           Ownership[]
+  // Ownership transfers where this user was the previous owner
+  transfersFrom        OwnershipTransfer[] @relation("TransferFrom")
+  // Ownership transfers where this user is the new owner
+  transfersTo          OwnershipTransfer[] @relation("TransferTo")
+
+  @@index([plot_no], map: "Users_plot_no_idx")
+  @@index([status], map: "Users_status_idx")
 }
 
 model Plot {
   plot_no     String   @id
-  owner_name  String
+  owner_name  String?
   size        Float    @default(0.0)
-  is_assigned Boolean  @default(false)
-  assigned_to Int?     @unique
+  plot_type   String   @default("single_unit")
+  is_disputed Boolean  @default(false)
+  dispute_notes String? @db.Text
+  dispute_resolved_at DateTime?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
-  // Only back relation, no fields/references here
-  assignedUser Users?  @relation
+  // Flats in this plot (for multi_unit plots)
+  flats       Flat[]
+  // Ownership records for this plot
+  ownerships  Ownership[]
 }
 
+model Flat {
+  flat_id     Int      @id @default(autoincrement())
+  flat_no     String
+  floor       Int
+  plot_no     String
+  created_at  DateTime @default(now())
+
+  plot        Plot     @relation(fields: [plot_no], references: [plot_no], onDelete: Cascade)
+  ownerships  Ownership[]
+
+  @@unique([plot_no, flat_no])
+  @@index([plot_no], map: "Flat_plot_no_idx")
+}
+
+model Ownership {
+  ownership_id   Int       @id @default(autoincrement())
+  user_id        Int
+  plot_no        String
+  flat_id        Int?
+  ownership_type String
+  status         String    @default("active")
+  start_date     DateTime  @default(now())
+  end_date       DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  user           Users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  plot           Plot      @relation(fields: [plot_no], references: [plot_no], onDelete: Cascade)
+  flat           Flat?     @relation(fields: [flat_id], references: [flat_id], onDelete: Cascade)
+
+  @@index([user_id], map: "Ownership_user_id_idx")
+  @@index([plot_no], map: "Ownership_plot_no_idx")
+  @@index([flat_id], map: "Ownership_flat_id_idx")
+}
+
+model OwnershipTransfer {
+  transfer_id    Int      @id @default(autoincrement())
+  from_user_id   Int
+  to_user_id     Int
+  plot_no        String
+  flat_id        Int?
+  reason         String
+  notes          String?  @db.VarChar(500)
+  transfer_date  DateTime @default(now())
+
+  fromUser       Users    @relation("TransferFrom", fields: [from_user_id], references: [user_id], onDelete: Cascade)
+  toUser         Users    @relation("TransferTo", fields: [to_user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([from_user_id], map: "OwnershipTransfer_from_idx")
+  @@index([to_user_id], map: "OwnershipTransfer_to_idx")
+}
 
 model Fees {
   fee_id      Int           @id @default(autoincrement())

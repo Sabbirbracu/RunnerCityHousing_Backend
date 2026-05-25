@@ -31,19 +31,46 @@ Runner City is a housing management system designed to bring transparency and au
 
 #### Multi-Step Signup Form (5 Steps)
 
-Designed for non-tech-savvy users (40-60 year old plot owners). Each step shows only 1-2 fields to avoid overwhelming the user.
+Designed for non-tech-savvy users (40-60 year old plot owners). Each step shows only 1-2 fields to avoid overwhelming the user. Progress bar shown at the top.
 
-| Step | Fields | Logic |
-|------|--------|-------|
-| 1. Plot Number | Plot number | Backend checks if plot exists and if it already has an owner |
-| 2. Relationship (conditional) | Relationship dropdown | Only shown if the plot already has a registered owner. Options: Son, Daughter, Wife, Husband, Brother, Tenant, Caretaker, Other |
-| 3. Ownership Type | Full owner / Flat owner (big buttons) | If flat owner → also asks "How many flats?" |
-| 4. Personal Info | Name, Phone, Email | Basic identity |
-| 5. Password | Password, Confirm password | Account security |
+**Step 1: Plot Number**
+- Single field: "Enter your plot number"
+- Backend checks if the plot exists in the system
+- If plot doesn't exist → show error "Invalid plot number"
 
-- Progress bar shown at the top
+**Step 2: Your Role**
+- "What is your role for this plot?" (big buttons/cards)
+  - **Full Owner** — I own this entire plot/building
+  - **Flat Owner** — I own flat(s) in this building
+  - **Family/Resident** — I live here but I'm not the owner
+  - **Tenant** — I'm renting here
+  - **Caretaker** — I manage on behalf of the owner
+
+**Step 3: Conditional Details (based on Step 2)**
+
+| If they selected | Show this |
+|-----------------|-----------|
+| Full Owner | Nothing extra — skip to Step 4 |
+| Flat Owner | "How many flats do you own?" (number input) |
+| Family/Resident | "Select your relationship with the owner" dropdown (Son, Daughter, Wife, Husband, Brother, Other) |
+| Tenant | Nothing extra — skip to Step 4 |
+| Caretaker | "Select your relationship with the owner" dropdown (same as Family) |
+
+**Step 4: Personal Info**
+- Name
+- Phone number
+- Email
+
+**Step 5: Set Password**
+- Password
+- Confirm password
+
+**Submission:**
 - Frontend collects all data step-by-step, submits as a single `POST /auth/signup` at the end
-- After submission: "Your request has been submitted. Admin will approve shortly."
+- Response: "Your request has been submitted. Admin will approve shortly."
+- Account created with status: `pending`
+
+**Important:** The system never auto-assigns anyone as owner. Everyone declares their own role. Admin verifies and approves. If a son registers before the father, no problem — he selects "Family/Resident → Son" and admin knows he's not the owner. When the father registers later, he selects "Full Owner" and admin approves him as the actual owner.
 
 #### Ownership Types (Simplified)
 
@@ -59,15 +86,13 @@ Designed for non-tech-savvy users (40-60 year old plot owners). Each step shows 
 
 #### Relationship Types (Predefined Dropdown)
 
-When a plot already has a registered owner, new signups must declare their relationship:
+Shown only when user selects "Family/Resident" or "Caretaker" in Step 2:
 
 - Son
 - Daughter
 - Wife
 - Husband
 - Brother
-- Tenant
-- Caretaker
 - Other (with optional text explanation)
 
 #### Plot Structure
@@ -81,6 +106,23 @@ When a plot already has a registered owner, new signups must declare their relat
 - Admin can transfer ownership (death, sale, departure)
 - Full history preserved — no data is ever deleted
 - Previous owner's status updated accordingly
+
+#### Admin Approval Process
+
+What admin sees for each pending registration:
+
+| Field | Example |
+|-------|---------|
+| Name | Rahim Molla |
+| Plot | A-12 |
+| Claimed Role | Family/Resident |
+| Relationship | Son |
+| Phone | 01712345678 |
+| Email | rahim@email.com |
+
+Admin actions:
+- **Approve** → account becomes active with the claimed role
+- **Reject** → account stays locked, optional rejection reason stored
 
 #### User Roles
 
